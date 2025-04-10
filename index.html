@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Simulador de Rota</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+    <!-- Routing Machine -->
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.min.js"></script>
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 1000;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="info-panel">
+        <div><strong>Ponto A:</strong> -5.859121, -35.206266</div>
+        <div><strong>Ponto B:</strong> -5.960170, -35.196934</div>
+    </div>
+
+    <script>
+        const origem = [-5.859121, -35.206266];
+        const destino = [-5.960170, -35.196934];
+
+        const map = L.map('map').setView(origem, 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+        }).addTo(map);
+
+        const routing = L.Routing.control({
+            waypoints: [
+                L.latLng(origem),
+                L.latLng(destino)
+            ],
+            createMarker: () => null,
+            routeWhileDragging: false,
+            addWaypoints: false,
+            show: false
+        });
+
+        routing.on('routesfound', function(e) {
+            const coords = e.routes[0].coordinates;
+            const icon = L.icon({
+                iconUrl: 'https://cdn-icons-png.flaticon.com/512/743/743007.png',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            const marker = L.marker(coords[0], { icon }).addTo(map);
+            const polyline = L.polyline([], { color: 'blue' }).addTo(map);
+            map.setView(coords[0], 17);
+
+            let index = 0;
+            const stepTime = 200;
+
+            const move = () => {
+                if (index < coords.length - 1) {
+                    index++;
+                    const nextLatLng = L.latLng(coords[index].lat, coords[index].lng);
+                    marker.setLatLng(nextLatLng);
+                    polyline.addLatLng(nextLatLng);
+                    map.panTo(nextLatLng);
+                    setTimeout(move, stepTime);
+                }
+            };
+
+            setTimeout(move, 1000);
+        });
+
+        routing.addTo(map);
+
+        // Remover painel lateral
+        const observer = new MutationObserver(() => {
+            const panel = document.querySelector('.leaflet-routing-container');
+            if (panel) panel.remove();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    </script>
+</body>
+</html>
